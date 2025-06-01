@@ -1,0 +1,105 @@
+<!-- <!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time BTC Trades</title>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+</head>
+<body>
+    <h1>Real-Time BTCUSDT Trade Data</h1>
+    <p><strong>Symbol:</strong> <span id="symbol"> </span></p>
+    <p><strong>Price:</strong> <span id="price"> </span></p>
+    <p><strong>Quantity:</strong> <span id="quantity"> </span></p>
+    <p><strong>Timestamp:</strong> <span id="timestamp"> </span></p>
+
+    <script>
+        const socket = io('http://localhost:5000');
+
+        socket.on('connect', function() {
+            console.log("Connected to server");
+        });
+        socket.on('update', function(data) {
+            console.log("Received update:", data);
+            document.getElementById("symbol").innerText = data["Symbol"];
+            document.getElementById("price").innerText = data["Price"];
+            document.getElementById("quantity").innerText = data["Quantity"];
+            document.getElementById("timestamp").innerText = new Date(parseInt(data["timestamp"]) * 1000).toLocaleString();
+        });
+    </script>
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Real-Time BTC Trades</title>
+    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f7f9fc;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        h1 {
+            color: #1a73e8;
+            margin-bottom: 1.5rem;
+        }
+
+        .trade-data {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+            padding: 1.5rem 2rem;
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .trade-data p {
+            font-size: 1.1rem;
+            margin: 0.8rem 0;
+        }
+
+        strong {
+            color: #555;
+        }
+
+        span {
+            float: right;
+            font-weight: bold;
+            color: #111;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time BTCUSDT Trade Data</h1>
+    <div class="trade-data">
+        <p><strong>Symbol:</strong> <span id="symbol">-</span></p>
+        <p><strong>Price:</strong> <span id="price">-</span></p>
+        <p><strong>Quantity:</strong> <span id="quantity">-</span></p>
+        <p><strong>Timestamp:</strong> <span id="timestamp">-</span></p>
+    </div>
+
+    <script>
+        const socket = io('http://localhost:5000');
+
+        socket.on('connect', function() {
+            console.log("Connected to server");
+        });
+
+        socket.on('update', function(data) {
+            console.log("Received update:", data);
+            document.getElementById("symbol").innerText = data["Symbol"];
+            document.getElementById("price").innerText = data["Price"];
+            document.getElementById("quantity").innerText = data["Quantity"];
+            document.getElementById("timestamp").innerText = new Date(parseInt(data["timestamp"]) * 1000).toLocaleString();
+        });
+    </script>
+</body>
+</html>
+
+

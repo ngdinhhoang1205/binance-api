@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:latest
+    container_name: redis
+    # ports:
+    #   - "6379:6379"
+
+  flask-app:
+    build:
+      context: .
+    container_name: flask-realtime-app
+    ports:
+      - "5000:5000"
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOST=redis
