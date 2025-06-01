@@ -53,5 +53,3 @@ Frontend via WebSocket or REST
 TimescaleDB (for historical storage/analytics)
 
 pywin32==310; sys_platform == "win32"
-
-PAT: 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
