@@ -1,6 +1,7 @@
 import json
 import redis
 import time
+import os
 # Connect to your Redis server (adjust host and port if needed)
 
 
@@ -12,7 +13,8 @@ class BinanceStreamHandler:
 
     def on_message(self, ws, message):
         raw = json.loads(message)
-        r = redis.Redis(host='localhost', port=6379, decode_responses=True)
+        redis_host = os.getenv('REDIS_HOST', "host.docker.internal") # Default to localhost for local testing
+        r = redis.Redis(host=redis_host, port=6379, decode_responses=True)
         # Handle combined vs direct stream format
         data = raw.get("data", raw)
         stream = raw.get("stream", "unknown")

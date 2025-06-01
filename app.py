@@ -13,7 +13,7 @@ import os
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-redis_host = os.getenv("REDIS_HOST", "127.0.0.1")  # Defaults to localhost if not set
+redis_host = os.getenv("REDIS_HOST", "host.docker.internal")  # Defaults to localhost if not set
 r = redis.Redis(host=redis_host, port=6379, decode_responses=True)
 
 @app.route("/")
