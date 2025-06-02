@@ -22,8 +22,8 @@ class BinanceStreamHandler:
         # Apply key mapping
         mapped = {self.key_map.get(k, k): v for k, v in data.items()}
         mapped["stream"] = stream  # Optional: include stream name
-        for k, v in mapped.items():
-            r.hset(f"agg_trade:{int(time.time())}", mapping={k: str(v) for k, v in mapped.items()})
+        # for k, v in mapped.items():
+        r.hset(f"agg_trade:{int(time.time())}", mapping={k: str(v) for k, v in mapped.items()})
         print(mapped)
 
     def on_error(self, ws, error):

@@ -4,6 +4,9 @@ import json
 import requests
 import time
 from BinanceStreamHandler import BinanceStreamHandler
+import os
+import redis
+import threading
 
 # Base stream
 base_url = 'wss://fstream.binance.com'
@@ -32,15 +35,85 @@ agg_trade_keys_map = {
   "m": 'Is the buyer the market maker?',
 }
 # agg_trade_str processing
-stream_list = ["btcusdt@aggTrade", "ethusdt@aggTrade"]
-handler = BinanceStreamHandler(streams=stream_list, key_map=agg_trade_keys_map)
-combined_stream_url = "wss://fstream.binance.com/stream?streams=" + "/".join(stream_list)
-ws = websocket.WebSocketApp(
-    combined_stream_url,
-    on_message=handler.on_message,
-    on_error=handler.on_error,
-    on_close=handler.on_close,
-    on_open=handler.on_open
-)
-ws.run_forever()
-###############################################################################################################################################
+def agg_trade_socket():
+  stream_list = ["btcusdt@aggTrade", "ethusdt@aggTrade"] # 2 most common symbols to show
+  handler = BinanceStreamHandler(streams=stream_list, key_map=agg_trade_keys_map)
+  combined_stream_url = "wss://fstream.binance.com/stream?streams=" + "/".join(stream_list)
+
+  ws = websocket.WebSocketApp(
+      combined_stream_url,
+      on_message=handler.on_message,
+      on_error=handler.on_error,
+      on_close=handler.on_close,
+      on_open=handler.on_open
+  )
+  ws.run_forever()
+##############################################################################################################################################
+def mark_price_socket():
+  mark_price_stream_name = ['!markPrice@arr']
+  mark_price_key_map = {
+      "e": 'Event type',
+      "E": 'Event time',
+      "s": 'Symbol',
+      "p": 'Mark price',
+      "i": 'Index price',
+      "P": 'Estimated Settle Price', # only useful in the last hour before the settlement starts
+      "r": 'Funding rate',
+      "T": 'Next funding time'
+    }
+  mark_price_url = "wss://fstream.binance.com/stream?streams=" + "/".join(mark_price_stream_name)
+
+  def on_message(ws, message, key_map = mark_price_key_map):
+      data = json.loads(message)['data']
+      data_mapped = []
+      redis_host = os.getenv('REDIS_HOST', "host.docker.internal") # Default to localhost for local testing
+      r = redis.Redis(host=redis_host, port=6379, decode_responses=True)
+      times_stamp = int(time.time())
+      for i in data:
+        mapped = {key_map.get(k, k): v for k, v in i.items()}
+        data_mapped.append(mapped)
+      for i in data_mapped:
+        # data_db = (f'!markPrice@arr:{times_stamp}', mapping={k: str(v) for k, v in i.items()})
+        r.hset(f'!markPrice@arr:{times_stamp}', mapping={k: str(v) for k, v in i.items()})
+        print(i)
+
+  def on_error(ws, error):
+      print("Error:", error)
+
+  def on_close(ws, close_status_code, close_msg):
+      print("Closed")
+
+  def on_open(ws, stream_name = mark_price_stream_name):
+      # Subscribe to BTC/USDT perpetual trades
+      payload = {
+          "method": "SUBSCRIBE",
+          "params": stream_name,
+          "id": 1
+      }
+      ws.send(json.dumps(payload))
+
+  ws = websocket.WebSocketApp(
+      combined_streams,
+      on_message=on_message,
+      on_error=on_error,
+      on_close=on_close,
+      on_open=on_open
+  )
+  ws.run_forever()
+##############################################################################################################################################
+
+
+
+# Run threads
+t1 = threading.Thread(target=agg_trade_socket, daemon=True)
+t2 = threading.Thread(target=mark_price_socket, daemon=True)
+
+t1.start()
+t2.start()
+
+# To allow cancel threads
+try:
+    while True:
+        time.sleep(1)
+except KeyboardInterrupt:
+    print("Interrupted by user. Exiting...")
