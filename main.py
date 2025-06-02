@@ -22,7 +22,11 @@ all_symbols = [item['symbol'] for item in all_symbols['symbols']]
 combined_streams = 'wss://fstream.binance.com/stream' # output {"stream":"<streamName>","data":<rawPayload>}
 # Aggregate Trade Streams: The Aggregate Trade Streams push market trade information that is aggregated for fills with same price and taking side every 100 milliseconds. Only market trades will be aggregated, which means the insurance fund trades and ADL trades won't be aggregated.
 agg_trade_str_name = '<symbol>@aggTrade'
-agg_trade_keys_map = {
+# agg_trade_str processing
+def agg_trade_socket():
+  stream_list = ["btcusdt@aggTrade", "ethusdt@aggTrade"] # 2 most common symbols to show
+  combined_stream_url = "wss://fstream.binance.com/stream?streams=" + "/".join(stream_list)
+  agg_trade_keys_map = {
   "e": 'Event type',
   "E": 'Event time',
   "s": 'Symbol',
@@ -33,19 +37,41 @@ agg_trade_keys_map = {
   "l": 'Last trade ID',
   "T": 'Trade time',
   "m": 'Is the buyer the market maker?',
-}
-# agg_trade_str processing
-def agg_trade_socket():
-  stream_list = ["btcusdt@aggTrade", "ethusdt@aggTrade"] # 2 most common symbols to show
-  handler = BinanceStreamHandler(streams=stream_list, key_map=agg_trade_keys_map)
-  combined_stream_url = "wss://fstream.binance.com/stream?streams=" + "/".join(stream_list)
+  }
+  def on_message(ws, message):
+        raw = json.loads(message)
+        redis_host = os.getenv('REDIS_HOST', "host.docker.internal") # Default to localhost for local testing
+        r = redis.Redis(host=redis_host, port=6379, decode_responses=True)
+        # Handle combined vs direct stream format
+        data = raw.get("data", raw)
+        stream = raw.get("stream", "unknown")
+        # Apply key mapping
+        mapped = {agg_trade_keys_map.get(k, k): v for k, v in data.items()}
+        mapped["stream"] = stream  # Optional: include stream name
+        # for k, v in mapped.items():
+        r.hset(f"agg_trade:{int(time.time())}", mapping={k: str(v) for k, v in mapped.items()})
+        print(mapped)
+
+  def on_error(ws, error):
+      print("Error:", error)
+
+  def on_close(ws, close_status_code, close_msg):
+      print("Closed")
+
+  def on_open(ws):
+      payload = {
+          "method": "SUBSCRIBE",
+          "params": self.streams,
+          "id": 1
+      }
+      ws.send(json.dumps(payload))
 
   ws = websocket.WebSocketApp(
       combined_stream_url,
-      on_message=handler.on_message,
-      on_error=handler.on_error,
-      on_close=handler.on_close,
-      on_open=handler.on_open
+      on_message=on_message,
+      on_error=on_error,
+      on_close=on_close,
+      on_open=on_open
   )
   ws.run_forever()
 ##############################################################################################################################################
@@ -100,9 +126,6 @@ def mark_price_socket():
       on_open=on_open
   )
   ws.run_forever()
-##############################################################################################################################################
-
-
 
 # Run threads
 t1 = threading.Thread(target=agg_trade_socket, daemon=True)
