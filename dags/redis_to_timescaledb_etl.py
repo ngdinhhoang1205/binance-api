@@ -1,23 +1,7 @@
 from airflow import DAG
 from airflow.operators.python import PythonOperator
 from datetime import datetime, timedelta
-import redis
-import psycopg2
-import json
-import os
-
-# Configs — replace these if using Airflow Variables/Secrets
-REDIS_HOST = 'redis'
-REDIS_PORT = os.getenv('REDIS_HOST', "host.docker.internal")
-
-PG_HOST = 'timescaledb'
-PG_PORT = 5432
-PG_USER = 'joeynguyen'
-PG_PASSWORD = 'joeynguyen'
-PG_DB = 'binance-api'
-
-# The Redis key(s) where Binance price data is stored
-REDIS_KEY = 'agg_trade:*'
+from binanceapi_etl import redis_to_timescaledb  # your module should expose both functions
 
 default_args = {
     'owner': 'airflow',
@@ -25,19 +9,27 @@ default_args = {
     'retry_delay': timedelta(minutes=1),
 }
 
-def transfer_data(**context):
-    # Connect to Redis
-    r = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
+with DAG(
+    dag_id='redis_to_timescaledb_etl_dag',
+    default_args=default_args,
+    description='Run agg_trade and mark_price ETL every 5 minutes',
+    schedule_interval='*/5 * * * *',
+    # start_date=datetime(2025, 6, 1),
+    catchup=False,
+    tags=['binance', 'etl']
+) as dag:
 
-    # Connect to TimescaleDB
-    conn = psycopg2.connect(
-        host=PG_HOST,
-        port=PG_PORT,
-        dbname=PG_DB,
-        user=PG_USER,
-        password=PG_PASSWORD
+    # Task 1: Transfer agg_trade data
+    run_agg_trade_etl = PythonOperator(
+        task_id='run_agg_trade_etl',
+        python_callable=redis_to_timescaledb.agg_trade_transfer_data
     )
-    cursor = conn.cursor()
+    # Task 2: Transfer mark_price data
+    run_mark_price_etl = PythonOperator(
+        task_id='run_mark_price_etl',
+        python_callable=redis_to_timescaledb.mark_price_transfer_data  # Assuming it's defined in the same module
+    )
 
-    # Read all data from Redis hash
-    data = r.hgetall(REDIS_KEY)
+    # Run both in parallel
+    # run_agg_trade_etl >> run_mark_price_etl  # Optional: use if you want to run in sequence
+    # Or comment the above line if they should run independently

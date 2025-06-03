@@ -1,17 +1,15 @@
 from datetime import datetime, timedelta
 import redis
 import psycopg2
-import json
 import os
-import time
 
 # Configs — replace these if using Airflow Variables/Secrets
 REDIS_HOST = os.getenv('REDIS_HOST', 'host.docker.internal' if os.getenv('IN_DOCKER') else 'localhost')
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
 
 # PG_HOST = 'timescaledb'
-PG_HOST = 'localhost'
-PG_PORT = 5432
+PG_HOST = ('timescaledb' if os.getenv('IN_DOCKER') else'localhost')
+PG_PORT = '5432'
 PG_USER = 'joeynguyen'
 PG_PASSWORD = 'joeynguyen'
 PG_DB = 'binance-api'
@@ -33,7 +31,7 @@ def connect_pg():
         user=PG_USER,
         password=PG_PASSWORD
     )
-def ensure_table_exists(conn):
+def agg_trade_ensure_table_exists(conn):
     cursor = conn.cursor()
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS agg_trade (
@@ -54,12 +52,30 @@ def ensure_table_exists(conn):
     conn.commit()
     cursor.close()
 
-def transfer_data(**context):
+def mark_price_ensure_table_exists(conn):
+    cursor = conn.cursor()
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS mark_price (
+            id SERIAL PRIMARY KEY,
+            event_type TEXT,
+            event_time TIMESTAMPTZ,
+            symbol TEXT,
+            mark_price DOUBLE PRECISION,
+            estimated_settle_price DOUBLE PRECISION,
+            index_price DOUBLE PRECISION,
+            funding_rate DOUBLE PRECISION,
+            next_funding_time TIMESTAMPTZ
+        );
+    """)
+    conn.commit()
+    cursor.close()
+
+def agg_trade_transfer_data(**context):
     # Connect to Redis
     r = connect_redis()
     # Connect to TimescaleDB
     conn = connect_pg()
-    ensure_table_exists(conn)
+    agg_trade_ensure_table_exists(conn)
     cursor = conn.cursor()
 
     # The Redis key(s) where Binance price data is stored
@@ -71,7 +87,6 @@ def transfer_data(**context):
             print(data)
         else:
             continue
-        
         try:
             event_type = data.get('Event type')
             event_time = datetime.fromtimestamp(int(data.get('Event time', '0')) / 1000) if data.get('Event time') else None
@@ -102,14 +117,51 @@ def transfer_data(**context):
     conn.commit()
     cursor.close()
     conn.close()
-transfer_data()
 
+def mark_price_transfer_data(**context):
+    # Connect to Redis
+    r = connect_redis()
 
-# if __name__ == "__main__":
-#     while True:
-#         print(f"[{datetime.now()}] Checking Redis for new data...")
-#         try:
-#             transfer_data()
-#         except Exception as e:
-#             print("Fatal error:", e)
-#         time.sleep(300)  # sleep 5 minutes
+    # Connect to TimescaleDB
+    conn = connect_pg()
+    mark_price_ensure_table_exists(conn)
+    cursor = conn.cursor()
+
+    # Get all mark price keys
+    keys = r.keys('!markPrice@arr:*')
+    
+    for key in keys:
+        data = r.hgetall(key)
+        if not data:
+            continue
+        print(data)
+
+        try:
+            event_type = data.get('Event type')
+            event_time = datetime.fromtimestamp(int(data.get('Event time', '0')) / 1000) if data.get('Event time') else None
+            symbol = data.get('Symbol')
+            mark_price = float(data.get('Mark price')) if data.get('Mark price') else None
+            estimated_settle_price = float(data.get('Estimated Settle Price')) if data.get('Estimated Settle Price') else None
+            index_price = float(data.get('Index price')) if data.get('Index price') else None
+            funding_rate = float(data.get('Funding rate')) if data.get('Funding rate') else None
+            next_funding_time = datetime.fromtimestamp(int(data.get('Next funding time', '0')) / 1000) if data.get('Next funding time') else None
+
+            cursor.execute("""
+                INSERT INTO mark_price (
+                    event_type, event_time, symbol,
+                    mark_price, estimated_settle_price,
+                    index_price, funding_rate, next_funding_time
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            """, (
+                event_type, event_time, symbol,
+                mark_price, estimated_settle_price,
+                index_price, funding_rate, next_funding_time
+            ))
+            r.delete(key)
+
+        except Exception as e:
+            print(f"Error inserting key {key}: {e}")
+
+    conn.commit()
+    cursor.close()
+    conn.close()

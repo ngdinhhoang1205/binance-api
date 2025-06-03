@@ -12,7 +12,22 @@ services:
     command: python main.py
     depends_on:
       - redis
-
+  airflow-init:
+    image: apache/airflow:2.9.2
+    depends_on:
+      - timescaledb
+      - redis
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__FERNET_KEY: 'ZYLXfJ8Td-W9XBhjIOHwlS8sJBtj-P5Lf0W5vZM-tdg='
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://joeynguyen:joeynguyen@timescaledb:5432/binance-api
+      AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.default'
+      AIRFLOW__WEBSERVER__SECRET_KEY: '2MYdegfDZJzh2sc_acoGrm1H_b531mOEK2x43ksEiTk'
+      PYTHONPATH: /opt/airflow
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./binanceapi_etl:/opt/airflow/binanceapi_etl
+    entrypoint: bash -c "airflow db migrate && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
   airflow-webserver:
     image: apache/airflow:2.9.2
     container_name: airflow-webserver
@@ -21,10 +36,14 @@ services:
       - timescaledb
     environment:
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__CORE__FERNET_KEY: 'random_fernet_key_here'
+      AIRFLOW__CORE__FERNET_KEY: 'ZYLXfJ8Td-W9XBhjIOHwlS8sJBtj-P5Lf0W5vZM-tdg='
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://joeynguyen:joeynguyen@timescaledb:5432/binance-api
+      AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.default'
+      AIRFLOW__WEBSERVER__SECRET_KEY: '2MYdegfDZJzh2sc_acoGrm1H_b531mOEK2x43ksEiTk'
+      PYTHONPATH: /opt/airflow
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./binanceapi_etl:/opt/airflow/binanceapi_etl
     ports:
       - "8080:8080"
     command: webserver
@@ -36,10 +55,14 @@ services:
       - airflow-webserver
     environment:
       AIRFLOW__CORE__EXECUTOR: SequentialExecutor
-      AIRFLOW__CORE__FERNET_KEY: 'random_fernet_key_here'
+      AIRFLOW__CORE__FERNET_KEY: 'ZYLXfJ8Td-W9XBhjIOHwlS8sJBtj-P5Lf0W5vZM-tdg='
       AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://joeynguyen:joeynguyen@timescaledb:5432/binance-api
+      AIRFLOW__API__AUTH_BACKEND: 'airflow.api.auth.backend.default'
+      AIRFLOW__WEBSERVER__SECRET_KEY: '2MYdegfDZJzh2sc_acoGrm1H_b531mOEK2x43ksEiTk'
+      PYTHONPATH: /opt/airflow
     volumes:
       - ./dags:/opt/airflow/dags
+      - ./binanceapi_etl:/opt/airflow/binanceapi_etl
     command: scheduler
 
   flask-app:
