@@ -61,7 +61,7 @@ def agg_trade_socket():
   def on_open(ws):
       payload = {
           "method": "SUBSCRIBE",
-          "params": self.streams,
+          "params": stream_list,
           "id": 1
       }
       ws.send(json.dumps(payload))

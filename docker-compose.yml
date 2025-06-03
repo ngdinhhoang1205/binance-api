@@ -4,6 +4,8 @@ services:
     container_name: redis
     ports:
       - "6379:6379"
+    environment:
+      - IN_DOCKER=true
 
   worker:
     build: .
@@ -11,14 +13,57 @@ services:
     depends_on:
       - redis
 
+  airflow-webserver:
+    image: apache/airflow:2.9.2
+    container_name: airflow-webserver
+    depends_on:
+      - redis
+      - timescaledb
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__FERNET_KEY: 'random_fernet_key_here'
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://joeynguyen:joeynguyen@timescaledb:5432/binance-api
+    volumes:
+      - ./dags:/opt/airflow/dags
+    ports:
+      - "8080:8080"
+    command: webserver
+
+  airflow-scheduler:
+    image: apache/airflow:2.9.2
+    container_name: airflow-scheduler
+    depends_on:
+      - airflow-webserver
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__CORE__FERNET_KEY: 'random_fernet_key_here'
+      AIRFLOW__CORE__SQL_ALCHEMY_CONN: postgresql+psycopg2://joeynguyen:joeynguyen@timescaledb:5432/binance-api
+    volumes:
+      - ./dags:/opt/airflow/dags
+    command: scheduler
+
   flask-app:
     build:
       context: .
     command: python app.py
-    container_name: joeynguyen/binance-api
+    container_name: binance-api
     ports:
       - "5000:5000"
     depends_on:
       - worker
     environment:
       - REDIS_HOST=redis
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: timescaledb
+    environment:
+      POSTGRES_USER: joeynguyen
+      POSTGRES_PASSWORD: joeynguyen
+      POSTGRES_DB: binance-api
+    ports:
+      - "5432:5432"
+    volumes:
+      - timescale-data:/var/lib/postgresql/data
+volumes:
+  timescale-data:
