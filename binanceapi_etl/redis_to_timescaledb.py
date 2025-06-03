@@ -4,11 +4,11 @@ import psycopg2
 import os
 
 # Configs — replace these if using Airflow Variables/Secrets
-REDIS_HOST = os.getenv('REDIS_HOST', 'host.docker.internal' if os.getenv('IN_DOCKER') else 'localhost')
+# REDIS_HOST = os.getenv('REDIS_HOST', 'host.docker.internal' if os.getenv('IN_DOCKER') else 'localhost')
+REDIS_HOST = 'host.docker.internal'
 REDIS_PORT = int(os.getenv('REDIS_PORT', 6379))
 
-# PG_HOST = 'timescaledb'
-PG_HOST = ('timescaledb' if os.getenv('IN_DOCKER') else'localhost')
+PG_HOST = 'timescaledb'
 PG_PORT = '5432'
 PG_USER = 'joeynguyen'
 PG_PASSWORD = 'joeynguyen'

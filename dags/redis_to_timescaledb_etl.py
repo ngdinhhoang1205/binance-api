@@ -14,7 +14,7 @@ with DAG(
     default_args=default_args,
     description='Run agg_trade and mark_price ETL every 5 minutes',
     schedule_interval='*/5 * * * *',
-    # start_date=datetime(2025, 6, 1),
+    start_date=datetime(2025, 6, 1),
     catchup=False,
     tags=['binance', 'etl']
 ) as dag:
