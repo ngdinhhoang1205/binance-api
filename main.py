@@ -3,7 +3,6 @@ import websocket
 import json
 import requests
 import time
-from BinanceStreamHandler import BinanceStreamHandler
 import os
 import redis
 import threading
