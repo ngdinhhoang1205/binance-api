@@ -1,0 +1,12 @@
+dbt_binance:
+  target: dev
+  outputs:
+    dev:
+      type: postgres
+      host: host.docker.internal
+      user: joeynguyen
+      password: joeynguyen
+      port: 5432
+      dbname: binance-api
+      schema: public
+      threads: 4

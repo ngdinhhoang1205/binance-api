@@ -27,6 +27,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - ./binanceapi_etl:/opt/airflow/binanceapi_etl
+      - /var/run/docker.sock:/var/run/docker.sock
     entrypoint: bash -c "airflow db migrate && airflow users create --username admin --password admin --firstname Admin --lastname User --role Admin --email admin@example.com"
   airflow-webserver:
     image: apache/airflow:2.9.2
@@ -44,6 +45,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - ./binanceapi_etl:/opt/airflow/binanceapi_etl
+      - /var/run/docker.sock:/var/run/docker.sock
     ports:
       - "8080:8080"
     command: webserver
@@ -63,6 +65,7 @@ services:
     volumes:
       - ./dags:/opt/airflow/dags
       - ./binanceapi_etl:/opt/airflow/binanceapi_etl
+      - /var/run/docker.sock:/var/run/docker.sock
     command: scheduler
 
   flask-app:
@@ -88,5 +91,15 @@ services:
       - "5432:5432"
     volumes:
       - timescale-data:/var/lib/postgresql/data
+  dbt:
+    image: ghcr.io/dbt-labs/dbt-postgres:1.9.0
+    volumes:
+      - ./dbt_binance:/usr/app
+      - ./dbt_binance/.dbt:/root/.dbt
+    working_dir: /usr/app
+    depends_on:
+      - timescaledb
+    entrypoint: ["dbt"]  # Use dbt as entrypoint
+    command: ["debug"]  # Or any dbt subcommand
 volumes:
   timescale-data:

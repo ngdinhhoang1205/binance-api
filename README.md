@@ -1,31 +1,46 @@
-# Binance Real-Time Market Data Stream
+# Binance API Streamer and Dashboard
 
-A data engineering portfolio project that connects to the Binance WebSocket API to stream real-time cryptocurrency market data. The project is containerized using Docker and is built with production readiness in mind.
+This project streams real-time market data from the Binance WebSocket API, stores it in TimescaleDB, and displays it in a live dashboard using Flask, Socket.IO, and JavaScript. Airflow is integrated for scheduled data operations and orchestration.
 
 ---
 
-## 📌 Features
+## 🚀 Features
 
-- Connects to Binance WebSocket API
-- Streams real-time cryptocurrency price data
-- Containerized with Docker & orchestrated with Docker Compose
-- Uses Supervisor for process monitoring
-- Easy deployment and scalability
-- (Optional) Exposes a web API or data visualization dashboard
+- 📡 Real-time Binance Futures WebSocket stream
+- 🛢️ Data storage in TimescaleDB (PostgreSQL extension)
+- 📊 Live dashboard with WebSocket updates
+- 🐳 Dockerized with `docker-compose`
+- 📅 Apache Airflow integration for periodic tasks (ETL, snapshots, cleanup)
+
+---
+
+## 🧱 Tech Stack
+
+- **Backend**: Python (Flask, Socket.IO)
+- **Frontend**: HTML + JS
+- **Database**: PostgreSQL + TimescaleDB
+- **Scheduler**: Apache Airflow
+- **Streaming**: Binance WebSocket
+- **Deployment**: Docker & Docker Compose
 
 ---
 
 ## 📁 Project Structure
-├── BinanceStreamHandler.py # Stream handler for Binance WebSocket
-├── app.py # Main app logic (e.g., Web server or data processing entrypoint)
-├── main.py # Alternate entry point
-├── main.ipynb # Jupyter notebook for EDA or testing
-├── Dockerfile # Docker image definition
-├── docker-compose.yml # Docker orchestration
-├── supervisord.conf # Process supervisor configuration
-├── requirements.txt # Python dependencies
-├── Frequently-Used-Commands.txt
-└── READ.txt # Notes or logs
+binance-api/
+├── dags/ # Airflow DAGs
+│ └── snapshot_dag.py # Example scheduled DAG
+├── app.py # Flask app for the dashboard
+├── stream/ # Binance stream handler
+│ └── BinanceStreamHandler.py
+├── db/ # TimescaleDB setup
+│ └── init.sql
+├── docker-compose.yml # Multi-container setup
+├── Dockerfile # Flask app Dockerfile
+├── airflow/ # Airflow configuration
+│ ├── Dockerfile
+│ └── requirements.txt
+├── requirements.txt
+└── README.md
 
 ---
 
@@ -44,6 +59,8 @@ Make sure you have the following installed:
 git clone https://github.com/ngdinhhoang1205/binance-api.git
 cd binance-api
 
+navigate to redis_to_timescaledb_etl.py, look for run_mark_price_latest_etl, the mounts=[], update the absolute paths source='D:\Projects\BinanceAPI\dbt_binance' and source='D:\Projects\BinanceAPI\dbt_binance/.dbt' to the one that matches your machine
+
 ### Build and Run with Docker Compose
 docker-compose up --build
 This will:
@@ -55,5 +72,7 @@ This will:
 - Python 3.x
 - Binance WebSocket API
 - Docker & Docker Compose
-- Redis for DB
+- Redis and timescaledb for DB
 - Supervisor
+- Airflow
+- dbt

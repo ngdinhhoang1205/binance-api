@@ -76,9 +76,10 @@ def mark_price_latest():
                 # Convert datetime fields to ISO 8601 strings if present
                 if 'event_time' in row_dict and isinstance(row_dict['event_time'], datetime):
                     row_dict['event_time'] = row_dict['event_time'].isoformat()
-
                 if 'next_funding_time' in row_dict and isinstance(row_dict['next_funding_time'], datetime):
                     row_dict['next_funding_time'] = row_dict['next_funding_time'].isoformat()
+                if 'update_time' in row_dict and isinstance(row_dict['update_time'], datetime):
+                    row_dict['update_time'] = row_dict['update_time'].isoformat()
                 result.append(row_dict)
             socketio.emit('mark_price_latest', result)
             print("mark_price_latest data:", result)
@@ -89,7 +90,7 @@ def mark_price_latest():
         except Exception as e:
             print("Error fetching from TimescaleDB:", e)
             return []
-        time.sleep(1)
+        time.sleep(10)
 
 @socketio.on('connect')
 def handle_connect():
