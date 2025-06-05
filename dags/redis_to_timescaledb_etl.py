@@ -29,7 +29,10 @@ with DAG(
         task_id='run_mark_price_etl',
         python_callable=redis_to_timescaledb.mark_price_transfer_data  # Assuming it's defined in the same module
     )
-
-    # Run both in parallel
-    # run_agg_trade_etl >> run_mark_price_etl  # Optional: use if you want to run in sequence
-    # Or comment the above line if they should run independently
+    # Task 3: Create a new table (replace if exists) showing the latest mark_prices
+    run_mark_price_latest_etl = PythonOperator(
+    task_id='run_mark_price_latest_etl',
+    python_callable=redis_to_timescaledb.mark_price_transfer_data_latest  # Assuming it's defined in the same module
+    )
+    # Task 1, Task 2 run, then Task 3
+    [run_agg_trade_etl, run_mark_price_etl] >> run_mark_price_latest_etl

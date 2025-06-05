@@ -165,3 +165,25 @@ def mark_price_transfer_data(**context):
     conn.commit()
     cursor.close()
     conn.close()
+
+def mark_price_transfer_data_latest(**context):
+    # Connect to Redis
+    r = connect_redis()
+
+    # Connect to TimescaleDB
+    conn = connect_pg()
+    cursor = conn.cursor()
+    cursor.execute("""
+                    DROP TABLE IF EXISTS mark_price_latest;
+                   
+                    CREATE TABLE mark_price_latest AS
+                    WITH latest_price AS (
+                        SELECT symbol, MAX(event_time)
+                        FROM mark_price
+                        GROUP BY symbol)
+                    SELECT mark_price.* FROM mark_price
+                    LEFT JOIN latest_price on mark_price.symbol = latest_price.symbol
+                    WHERE event_time = max;""")
+    conn.commit()
+    cursor.close()
+    conn.close()
