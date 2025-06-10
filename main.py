@@ -48,8 +48,12 @@ def agg_trade_socket():
         mapped = {agg_trade_keys_map.get(k, k): v for k, v in data.items()}
         mapped["stream"] = stream  # Optional: include stream name
         # for k, v in mapped.items():
+        # try:
         r.hset(f"agg_trade:{int(time.time())}", mapping={k: str(v) for k, v in mapped.items()})
         print(mapped)
+        # except:
+        #     print(f'ERROR, CLOSING...{mapped}')
+        #     ws.close()
 
   def on_error(ws, error):
       print("Error:", error)
@@ -99,8 +103,12 @@ def mark_price_socket():
         data_mapped.append(mapped)
       for i in data_mapped:
         # data_db = (f'!markPrice@arr:{times_stamp}', mapping={k: str(v) for k, v in i.items()})
-        r.hset(f'!markPrice@arr:{times_stamp}', mapping={k: str(v) for k, v in i.items()})
-        print(i)
+        try:
+            r.hset(f'!markPrice@arr:{times_stamp}', mapping={k: str(v) for k, v in i.items()})
+            print(i)
+        except:
+            print(f"ERROR, CLOSING {i}")
+            ws.close()
 
   def on_error(ws, error):
       print("Error:", error)

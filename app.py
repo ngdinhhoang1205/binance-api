@@ -41,6 +41,10 @@ def redis_listener():
                 socketio.emit('update', data)
                 print("Emitted data:", data)
                 last_key = latest_key
+            else:
+                print(f'Unchange latest_key {latest_key}')
+        else:
+            print(keys)
         time.sleep(1)  # Adjust as needed
 
 
@@ -62,8 +66,9 @@ def mark_price_latest():
 
             # Example query: get latest mark price per symbol
             cursor.execute("""
-                SELECT *
+                SELECT * 
                 FROM mark_price_latest
+                ORDER BY event_time DESC
                 ;
             """)
 

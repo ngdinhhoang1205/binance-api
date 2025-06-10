@@ -1,77 +1,3 @@
-<!-- <!DOCTYPE html>
-<html>
-<head>
-    <title>Real-Time BTC Trades</title>
-    <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f7f9fc;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 2rem;
-        }
-
-        h1 {
-            color: #1a73e8;
-            margin-bottom: 1.5rem;
-        }
-
-        .trade-data {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.05);
-            padding: 1.5rem 2rem;
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .trade-data p {
-            font-size: 1.1rem;
-            margin: 0.8rem 0;
-        }
-
-        strong {
-            color: #555;
-        }
-
-        span {
-            float: right;
-            font-weight: bold;
-            color: #111;
-        }
-    </style>
-</head>
-<body>
-    <h1>Real-Time BTCUSDT Trade Data</h1>
-    <div class="trade-data">
-        <p><strong>Symbol:</strong> <span id="symbol">-</span></p>
-        <p><strong>Price:</strong> <span id="price">-</span></p>
-        <p><strong>Quantity:</strong> <span id="quantity">-</span></p>
-        <p><strong>Timestamp:</strong> <span id="timestamp">-</span></p>
-    </div>
-
-    <script>
-        const socket = io('http://localhost:5000');
-
-        socket.on('connect', function() {
-            console.log("Connected to server");
-        });
-
-        socket.on('update', function(data) {
-            console.log("Received update:", data);
-            document.getElementById("symbol").innerText = data["Symbol"];
-            document.getElementById("price").innerText = data["Price"];
-            document.getElementById("quantity").innerText = data["Quantity"];
-            document.getElementById("timestamp").innerText = new Date(parseInt(data["timestamp"]) * 1000).toLocaleString();
-        });
-    </script>
-</body>
-</html> -->
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -146,7 +72,7 @@
         </div>
     </div>
     <h2>Latest Mark Prices</h2>
-    <table id="mark-price-table" border="1" cellpadding="8" cellspacing="0" style="margin-top: 2rem; background: #fff; border-collapse: collapse;">
+    <!-- <table id="mark-price-table" border="1" cellpadding="8" cellspacing="0" style="margin-top: 2rem; background: #fff; border-collapse: collapse;">
         <thead>
             <tr>
                 <th>Symbol</th>
@@ -154,6 +80,15 @@
                 <th>Timestamp</th>
             </tr>
         </thead>
+        <tbody id="mark-price-body">
+            <tr class="placeholder-row">
+                <td colspan="3" style="text-align:center; color: #888;">Waiting for mark price data...</td>
+            </tr>
+        </tbody>
+    </table> -->
+    <table id="mark-price-table" border="1" cellpadding="8" cellspacing="0"
+        style="margin-top: 2rem; background: #fff; border-collapse: collapse; width: 100%; max-width: 1000px;">
+        <thead></thead>
         <tbody id="mark-price-body">
             <tr class="placeholder-row">
                 <td colspan="3" style="text-align:center; color: #888;">Waiting for mark price data...</td>
@@ -183,41 +118,93 @@
                 document.getElementById("eth-timestamp").innerText = new Date(parseInt(data["timestamp"]) * 1000).toLocaleString();
             }
         });
+        // socket.on('mark_price_latest', function (result) {
+        //     console.log("Mark_price_latest received:", result);
+
+        //     const tbody = document.getElementById("mark-price-body");
+
+        //     // Clear placeholder or previous rows
+        //     tbody.innerHTML = "";
+
+        //     if (!Array.isArray(result) || result.length === 0) {
+        //         const row = document.createElement("tr");
+        //         row.innerHTML = `<td colspan="3" style="text-align:center; color: #999;">No data received</td>`;
+        //         tbody.appendChild(row);
+        //         return;
+        //     }
+
+        //     result.forEach(row => {
+        //         if (!row.symbol || !row.mark_price || !row.event_time) {
+        //             console.warn("Skipping invalid row:", row);
+        //             return;
+        //         }
+
+        //         const tr = document.createElement("tr");
+
+        //         const symbolTd = document.createElement("td");
+        //         symbolTd.innerText = row.symbol;
+
+        //         const priceTd = document.createElement("td");
+        //         priceTd.innerText = row.mark_price;
+
+        //         const tsTd = document.createElement("td");
+        //         tsTd.innerText = new Date(row.event_time).toLocaleString();
+
+        //         tr.appendChild(symbolTd);
+        //         tr.appendChild(priceTd);
+        //         tr.appendChild(tsTd);
+        //         tbody.appendChild(tr);
+        //     });
+        // });
         socket.on('mark_price_latest', function (result) {
             console.log("Mark_price_latest received:", result);
 
+            const thead = document.querySelector("#mark-price-table thead");
             const tbody = document.getElementById("mark-price-body");
 
-            // Clear placeholder or previous rows
+            // Clear existing headers and rows
+            thead.innerHTML = "";
             tbody.innerHTML = "";
 
             if (!Array.isArray(result) || result.length === 0) {
                 const row = document.createElement("tr");
-                row.innerHTML = `<td colspan="3" style="text-align:center; color: #999;">No data received</td>`;
+                row.innerHTML = `<td colspan="100%" style="text-align:center; color: #999;">No data received</td>`;
                 tbody.appendChild(row);
                 return;
             }
 
-            result.forEach(row => {
-                if (!row.symbol || !row.mark_price || !row.event_time) {
-                    console.warn("Skipping invalid row:", row);
-                    return;
-                }
+            // Create dynamic headers from the keys of the first row
+            const headerRow = document.createElement("tr");
+            const keys = Object.keys(result[0]);
 
+            keys.forEach(key => {
+                const th = document.createElement("th");
+                th.innerText = key;
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+
+            // Create rows from data
+            result.forEach(row => {
                 const tr = document.createElement("tr");
 
-                const symbolTd = document.createElement("td");
-                symbolTd.innerText = row.symbol;
+                keys.forEach(key => {
+                    const td = document.createElement("td");
 
-                const priceTd = document.createElement("td");
-                priceTd.innerText = row.mark_price;
+                    let value = row[key];
+                    // Convert timestamp-like values to readable dates
+                    if ((key.includes("time") || key.includes("Time")) && typeof value === "number") {
+                        try {
+                            value = new Date(value).toLocaleString();
+                        } catch {
+                            // leave as-is if conversion fails
+                        }
+                    }
 
-                const tsTd = document.createElement("td");
-                tsTd.innerText = new Date(row.event_time).toLocaleString();
+                    td.innerText = value ?? "-";
+                    tr.appendChild(td);
+                });
 
-                tr.appendChild(symbolTd);
-                tr.appendChild(priceTd);
-                tr.appendChild(tsTd);
                 tbody.appendChild(tr);
             });
         });
