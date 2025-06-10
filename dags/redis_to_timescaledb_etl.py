@@ -33,15 +33,6 @@ with DAG(
         python_callable=redis_to_timescaledb.mark_price_transfer_data  # Assuming it's defined in the same module
     )
     # Task 3: Create a new table (replace if exists) showing the latest mark_prices
-    # run_mark_price_latest_etl = PythonOperator(
-    # task_id='run_mark_price_latest_etl',
-    # python_callable=redis_to_timescaledb.mark_price_transfer_data_latest  # Assuming it's defined in the same module
-    # )
-    # run_mark_price_latest_etl = BashOperator(
-    #     task_id='run_mark_price_latest_etl',
-    #     bash_command='cd /app/dbt_binance && dbt run --select mark_price_latest',
-    #     env={"DBT_PROFILES_DIR": "/app/dbt_binance"}  # Set if profiles.yml is in a custom path
-    # )
     run_mark_price_latest_etl = DockerOperator(
         task_id='run_mark_price_latest_etl',
         image='ghcr.io/dbt-labs/dbt-postgres:1.9.0',

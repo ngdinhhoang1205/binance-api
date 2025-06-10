@@ -17,6 +17,20 @@ all_symbols = all_symbol_url_response.json()
 all_symbols = [item['symbol'] for item in all_symbols['symbols']]
 ###############################################################################################################################################
 
+# Add this class before your WebSocket thread functions
+class ThreadWithException(threading.Thread):
+    def __init__(self, target, name=None):
+        super().__init__(name=name)
+        self._target = target
+        self.exception = None
+
+    def run(self):
+        try:
+            self._target()
+        except Exception as e:
+            self.exception = e
+            print(f"[{self.name}] crashed with error: {e}")
+
 # Combined streams
 combined_streams = 'wss://fstream.binance.com/stream' # output {"stream":"<streamName>","data":<rawPayload>}
 # Aggregate Trade Streams: The Aggregate Trade Streams push market trade information that is aggregated for fills with same price and taking side every 100 milliseconds. Only market trades will be aggregated, which means the insurance fund trades and ADL trades won't be aggregated.
@@ -102,13 +116,12 @@ def mark_price_socket():
         mapped = {key_map.get(k, k): v for k, v in i.items()}
         data_mapped.append(mapped)
       for i in data_mapped:
-        # data_db = (f'!markPrice@arr:{times_stamp}', mapping={k: str(v) for k, v in i.items()})
-        try:
-            r.hset(f'!markPrice@arr:{times_stamp}', mapping={k: str(v) for k, v in i.items()})
-            print(i)
-        except:
-            print(f"ERROR, CLOSING {i}")
-            ws.close()
+        # try:
+        r.hset(f'!markPrice@arr:{times_stamp}', mapping={k: str(v) for k, v in i.items()})
+        print(i)
+        # except:
+        #     print(f"ERROR, CLOSING {i}")
+        #     ws.close()
 
   def on_error(ws, error):
       print("Error:", error)
@@ -134,16 +147,39 @@ def mark_price_socket():
   )
   ws.run_forever()
 
-# Run threads
-t1 = threading.Thread(target=agg_trade_socket, daemon=True)
-t2 = threading.Thread(target=mark_price_socket, daemon=True)
+# # Run threads
+# t1 = threading.Thread(target=agg_trade_socket, daemon=True)
+# t2 = threading.Thread(target=mark_price_socket, daemon=True)
+
+# t1.start()
+# t2.start()
+
+# # To allow cancel threads
+# try:
+#     while True:
+#         time.sleep(1)
+# except KeyboardInterrupt:
+#     print("Interrupted by user. Exiting...")
+
+    # Use our custom thread class
+t1 = ThreadWithException(target=agg_trade_socket, name="agg_trade")
+t2 = ThreadWithException(target=mark_price_socket, name="mark_price")
 
 t1.start()
 t2.start()
 
-# To allow cancel threads
 try:
     while True:
         time.sleep(1)
+
+        # Periodically check for errors
+        if t1.exception:
+            print("agg_trade_socket failed:", t1.exception)
+            break  # or restart the thread
+
+        if t2.exception:
+            print("mark_price_socket failed:", t2.exception)
+            break  # or restart the thread
+
 except KeyboardInterrupt:
     print("Interrupted by user. Exiting...")
