@@ -71,7 +71,7 @@ services:
   flask-app:
     build:
       context: .
-    command: python app.py
+    command: /bin/bash /app/ngrok_setup.sh
     container_name: binance-api
     ports:
       - "5000:5000"
@@ -79,6 +79,7 @@ services:
       - worker
     environment:
       - REDIS_HOST=redis
+      - NGROK_AUTHTOKEN=2yPlDQAH0fqQ7hO8iHplZE66Sod_5bq99LM1oktdqty2VTNPK
 
   timescaledb:
     image: timescale/timescaledb:latest-pg14

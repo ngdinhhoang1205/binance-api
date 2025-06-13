@@ -84,7 +84,8 @@
     </table>
 
     <script>
-        const socket = io('http://localhost:5000');
+        // const socket = io('http://localhost:5000');
+        const socket = io();
 
         socket.on('connect', function() {
             console.log("Connected to server");

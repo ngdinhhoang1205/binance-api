@@ -9,6 +9,11 @@ import threading
 import os
 import psycopg2
 from datetime import datetime
+# from pyngrok import ngrok
+# from pyngrok import conf
+
+# conf.get_default().auth_token = "2yPlDQAH0fqQ7hO8iHplZE66Sod_5bq99LM1oktdqty2VTNPK"
+
 
 app = Flask(__name__)
 socketio = SocketIO(app, cors_allowed_origins="*")
@@ -90,7 +95,6 @@ def mark_price_latest():
             print("mark_price_latest data:", result)
             cursor.close()
             conn.close()
-            # return result
 
         except Exception as e:
             print("Error fetching from TimescaleDB:", e)
@@ -112,5 +116,10 @@ if __name__ == "__main__":
     mark_price_thread.daemon = True
     mark_price_thread.start()
 
+    # # Open an ngrok tunnel to port 5000
+    # public_url = ngrok.connect(5000, bind_tls=True)
+    # print(f"\n * ngrok tunnel available at: {public_url.public_url}\n")
+
+    # Start the Flask server
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
 
